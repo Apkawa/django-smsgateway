@@ -8,7 +8,7 @@ class SMSRequest(object):
         supported character set depends on the SMS gateway provider and phone model.
         The validity of the 'signature' depends on the SMS gateway provider you are using.
 
-        >>> sms_request = SMSRequest(to='+32472123456;+3298723456', u'Hello, world!', signature='9898')
+        >>> sms_request = SMSRequest(to='+32472123456;+3298723456', msg=u'Hello, world!', signature='9898')
         """
         self.to = [check_cell_phone_number(n) for n in (to.split(';') if isinstance(to, basestring) else to)]
         self.msg = truncate_sms(msg)

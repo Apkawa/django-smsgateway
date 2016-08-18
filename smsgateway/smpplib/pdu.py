@@ -23,7 +23,6 @@
 """PDU module"""
 
 import struct
-import binascii
 
 #
 # SMPP error codes:

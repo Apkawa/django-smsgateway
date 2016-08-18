@@ -27,9 +27,8 @@ import socket
 import struct
 import binascii
 
-import smpp
-import pdu
-import command
+from . import smpp
+from . import pdu
 
 
 SMPP_CLIENT_STATE_CLOSED = 0

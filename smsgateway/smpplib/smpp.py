@@ -22,7 +22,7 @@
 
 """SMPP module"""
 
-import pdu
+from . import pdu
 
 
 smpp_instance = None

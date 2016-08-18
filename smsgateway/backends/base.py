@@ -1,4 +1,3 @@
-import urllib2
 import logging
 import datetime
 import re
@@ -7,6 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_callable
 
+from smsgateway.compat import urllib2
 from smsgateway.enums import DIRECTION_OUTBOUND
 from smsgateway.models import SMS
 from smsgateway.sms import SMSRequest
@@ -28,7 +28,6 @@ class SMSBackend(object):
         capacity = self.get_url_capacity()
         sender = u'[%s]' % self.get_slug() if not sms_request.signature else sms_request.signature
         reference = datetime.datetime.now().strftime('%Y%m%d%H%M%S') + u''.join(sms_request.to[:1])
-        all_succeeded = True
 
         # Split SMSes into batches depending on the capacity
         requests = []
@@ -43,7 +42,10 @@ class SMSBackend(object):
             del sms_request.to[:capacity]
 
         # Send each batch
+        responses = []
         for request in requests:
+            res_data = {'request': request, 'objects': None}
+
             url = self.get_send_url(request, account_dict)
             logger.debug('Sending SMS using: %s' % url)
 
@@ -55,15 +57,17 @@ class SMSBackend(object):
                     result = sock.read()
                     sock.close()
                 except:
+                    logger.exception("Send fail")
                     return False
             logger.debug('Result: %s' % result)
+            res_data['result'] = result
 
             # Validate result, create log entry if successful
-            if not self.validate_send_result(result):
-                all_succeeded = False
-            else:
+            res_data['success'] = False
+            if self.validate_send_result(result):
+                res_data['objects'] = []
                 for dest in request.to:
-                    SMS.objects.create(
+                    sms = SMS.objects.create(
                         sender=sender,
                         content=sms_request.msg,
                         to=dest,
@@ -71,8 +75,11 @@ class SMSBackend(object):
                         direction=DIRECTION_OUTBOUND,
                         gateway_ref=reference
                     )
+                    res_data['objects'].append(sms)
 
-        return all_succeeded
+            responses.append(res_data)
+
+        return responses
 
     def get_send_url(self, sms_request, account_dict):
         """

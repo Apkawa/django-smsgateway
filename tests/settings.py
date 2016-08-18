@@ -2,6 +2,8 @@
 
 import os
 
+TEST_ROOT = os.path.normcase(os.path.dirname(os.path.abspath(__file__)))
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -78,8 +80,13 @@ INSTALLED_APPS = [
     'django.contrib.sites',
 
     'smsgateway',
-    'smsgateway.tests',
+    'tests',
 ]
+
+
+
+
+############################################################################3
 
 SMSGATEWAY_HOOK = {
     'SIM': {

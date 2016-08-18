@@ -4,7 +4,6 @@ import redis
 
 from django.conf import settings
 from celery import shared_task as task
-from django_statsd.clients import statsd
 
 from lockfile import FileLock, AlreadyLocked, LockTimeout
 
@@ -66,10 +65,11 @@ def send_smses(send_deferred=False, backend=None, limit=None):
                 failures += 1
     finally:
         lock.release()
-        if successes and failures:
-            statsd.gauge('smsgateway.success_rate', successes / failures)
-        else:
-            statsd.gauge('smsgateway.success_rate', 1)
+        # TODO Fix
+        # if successes and failures:
+        #     statsd.gauge('smsgateway.success_rate', successes / failures)
+        # else:
+        #     statsd.gauge('smsgateway.success_rate', 1)
 
 
 inq_ts_fmt = '%Y-%m-%d %H:%M:%S'

@@ -1,5 +1,6 @@
 __version__ = '2.0.4'
 
+
 def get_account(using=None):
     from django.conf import settings
     accounts = settings.SMSGATEWAY_ACCOUNTS
@@ -8,7 +9,8 @@ def get_account(using=None):
     else:
         return accounts[accounts['__default__']]
 
-def send(to, msg, signature, using=None, reliable=False):
+
+def send(to, msg, signature=None, using=None, reliable=False):
     """
     Send an SMS message immediately.
 
@@ -23,22 +25,34 @@ def send(to, msg, signature, using=None, reliable=False):
     if not msg:
         return
 
-    from smsgateway.backends import get_backend
-    from smsgateway.sms import SMSRequest
+    from .backends import get_backend
+    from .sms import SMSRequest
+    from .options import SMSGATEWAY_SENDER
+
     account_dict = get_account(using)
+
+    signature = signature or account_dict.get('sender') or SMSGATEWAY_SENDER
+    assert signature, "signature is required!"
+
     backend = get_backend(account_dict['backend'])
     sms_request = SMSRequest(to, msg, signature, reliable=reliable)
     return backend.send(sms_request, account_dict)
 
-def send_queued(to, msg, signature, using=None, reliable=False, priority=None):
+
+def send_queued(to, msg, signature=None, using=None, reliable=False, priority=None):
     """
     Place SMS message in queue to be sent.
     """
     # Don't send empty smses
     if not msg:
         return
+    from .models import QueuedSMS
+    from .options import SMSGATEWAY_SENDER
 
-    from smsgateway.models import QueuedSMS
+    account_dict = get_account(using)
+    signature = signature or account_dict.get('sender') or SMSGATEWAY_SENDER
+    assert signature, "signature is required!"
+
     queued_sms = QueuedSMS(
         to=to,
         content=msg,
@@ -48,4 +62,4 @@ def send_queued(to, msg, signature, using=None, reliable=False, priority=None):
     )
     if priority is not None:
         queued_sms.priority = priority
-    queued_sms.save()
+    return queued_sms.save()

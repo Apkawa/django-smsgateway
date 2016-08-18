@@ -25,9 +25,9 @@
 import struct
 import binascii
 
-import smpp
-import pdu
-from ptypes import ostr, flag
+from . import smpp
+from . import pdu
+from .ptypes import ostr, flag
 
 
 #

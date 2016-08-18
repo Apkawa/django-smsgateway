@@ -68,7 +68,7 @@ class RedistoreSendSingleSMSTestCase(DjangoTestCase):
 
     def test_single_sms_object_values(self):
         self.assert_(self.sms.content == 'testing message')
-        self.assert_(self.sms.to == '+32000000001')
+        self.assertEqual(self.sms.to, '32000000001')
         self.assert_(self.sms.sender == 'the signature'[:len(self.sms.sender)])
 
     def test_redis_keys(self):
@@ -89,7 +89,7 @@ class RedistoreSendSingleSMSTestCase(DjangoTestCase):
                 'source_addr_ton': '0',
                 'source_addr': '15185',
                 'dest_addr_ton': '1',
-                'destination_addr': '+32000000001',
+                'destination_addr': '32000000001',
                 'esme_vrfy_seqn': '-1',
                 'short_message': 'testing message'})
 
