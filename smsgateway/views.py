@@ -4,6 +4,7 @@ from django.conf import settings
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.csrf import csrf_exempt
 
 from smsgateway import send
 from smsgateway.backends import get_backend
@@ -50,6 +51,7 @@ def backend_debug(request):
     )
 
 
+@csrf_exempt
 def backend_handle_incoming(request, backend_name):
     """
     Call the backend's handle_incoming method.
@@ -63,6 +65,7 @@ def backend_handle_incoming(request, backend_name):
     return b.handle_incoming(request)
 
 
+@csrf_exempt
 def backend_handle_callback(request, backend_name):
     """
     Call the backend's handle_callback method.
