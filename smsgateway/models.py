@@ -13,13 +13,17 @@ from smsgateway.enums import (OPERATOR_CHOICES, OPERATOR_UNKNOWN,
                               )
 from .fields import SeparatedField
 
-STATUS = namedtuple('STATUS', 'sent failed delivered queued')._make(range(4))
+STATUS = namedtuple('STATUS', 'sent failed delivered rejected')._make(range(4))
 
 
 @python_2_unicode_compatible
 class BaseSMS(models.Model):
-    STATUS_CHOICES = [(STATUS.sent, _("sent")), (STATUS.failed, _("failed")),
-                      (STATUS.delivered, _("delivered"))]
+    STATUS_CHOICES = [
+        (STATUS.sent, _("sent")),
+        (STATUS.failed, _("failed")),
+        (STATUS.delivered, _("delivered")),
+        (STATUS.rejected, _("rejected")),
+    ]
 
     cost = models.DecimalField(decimal_places=2, max_digits=6, null=True, blank=True)
     cost_currency_code = models.CharField(max_length=4, null=True, blank=True)
@@ -93,7 +97,12 @@ class Log(models.Model):
     A model to record sending email sending activities.
     """
 
-    STATUS_CHOICES = [(STATUS.sent, _("sent")), (STATUS.failed, _("failed"))]
+    STATUS_CHOICES = [
+        (STATUS.sent, _("sent")),
+        (STATUS.failed, _("failed")),
+        (STATUS.delivered, _("failed")),
+        (STATUS.rejected, _("rejected")),
+    ]
 
     sms = models.ForeignKey(SMS, editable=False, related_name='logs',
         verbose_name=_('SMS'))

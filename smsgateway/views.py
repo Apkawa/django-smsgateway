@@ -10,11 +10,13 @@ from smsgateway.backends import get_backend
 
 accounts = getattr(settings, 'SMSGATEWAY_ACCOUNTS', {})
 
+
 class BackendDebugForm(forms.Form):
     account = forms.ChoiceField(choices=[(k, k) for k in accounts.keys() if k != '__default__'])
     recipients = forms.CharField(help_text=u'Separate multiple recipients with a semicolon (;).')
     message = forms.CharField(widget=forms.widgets.Textarea())
     signature = forms.CharField()
+
 
 @staff_member_required
 def backend_debug(request):
@@ -47,13 +49,28 @@ def backend_debug(request):
         context_instance=RequestContext(request)
     )
 
+
 def backend_handle_incoming(request, backend_name):
     """
     Call the backend's handle_incoming method.
     """
     if backend_name == 'debug':
         return backend_debug(request)
+
     b = get_backend(backend_name)
     if b is None:
         raise Http404
     return b.handle_incoming(request)
+
+
+def backend_handle_callback(request, backend_name):
+    """
+    Call the backend's handle_callback method.
+    """
+    if backend_name == 'debug':
+        return backend_debug(request)
+
+    b = get_backend(backend_name)
+    if b is None:
+        raise Http404
+    return b.handle_callback(request)

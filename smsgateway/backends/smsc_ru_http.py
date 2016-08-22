@@ -2,12 +2,16 @@
 from __future__ import unicode_literals
 
 import json
+from six import text_type
 
-from django.http import HttpResponse
+from django.http import Http404
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils.encoding import smart_str
 from django.utils.http import urlencode
 
 import string
+
+from smsgateway.models import SMS, STATUS
 
 from smsgateway.backends.base import SMSBackend
 
@@ -53,14 +57,39 @@ class SMSCHTTPBackend(SMSBackend):
     def get_cost_currency(self, sms, parsed_result):
         return 'RUB'
 
-    def handle_incoming(self, request, reply_using=None):
+    def handle_callback(self, request):
         """
         Обработка входящих. Пока никак.
         :param request:
         :param reply_using:
         :return:
         """
-        return HttpResponse('')
+        data = request.POST
+
+        if data.get('mes'):
+            # Входящая смс
+            return HttpResponse('')
+
+        if not data:
+            return HttpResponseBadRequest("Empty post")
+
+        # статус смс
+        try:
+            sms = SMS.objects.get(gateway_ref=data['id'])
+        except SMS.DoesNotExist:
+            raise Http404("Not found sms")
+
+        message = json.dumps(data)
+        if data.get('err') is None or text_type(data['err']) == '0':
+            status = STATUS.delivered
+        else:
+            status = STATUS.rejected
+
+        sms.logs.create(status=status, message=message)
+        sms.status = status
+        sms.save()
+
+        return HttpResponse('OK')
 
     def get_slug(self):
         return 'smsc_http'

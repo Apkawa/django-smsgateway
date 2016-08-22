@@ -78,7 +78,7 @@ class SMSBackend(object):
                 self.process_response(sms, parsed_response)
 
                 res_data['result'] = parsed_response
-                res_data['objects'] = sms
+                res_data['object'] = sms
                 responses.append(res_data)
             finally:
                 sms.save()
@@ -122,6 +122,12 @@ class SMSBackend(object):
     def handle_incoming(self, request, reply_using=None):
         """
         Django view to receive incoming SMSes
+        """
+        raise NotImplementedError
+
+    def handle_callback(self, request):
+        """
+        Django view to receive callback for sended SMSes
         """
         raise NotImplementedError
 
