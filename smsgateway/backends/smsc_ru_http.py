@@ -40,7 +40,7 @@ class SMSCHTTPBackend(SMSBackend):
             'mes': msg,
             'sender': sender,
             "fmt": 3,
-            "cost": 1,
+            "cost": 2,
             "id": sms.gateway_ref,
         })
         return 'https://smsc.ru/sys/send.php?%s' % querystring
@@ -49,7 +49,7 @@ class SMSCHTTPBackend(SMSBackend):
         return json.loads(result)
 
     def validate_send_result(self, parsed_result):
-        return not parsed_result.get('error')
+        return parsed_result.get('id')
 
     def get_cost(self, sms, parsed_result):
         return parsed_result.get('cost')
