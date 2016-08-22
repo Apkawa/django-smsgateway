@@ -8,12 +8,28 @@ class LogInlineAdmin(admin.StackedInline):
     extra = 0
     can_delete = False
 
+    readonly_fields = ['status', 'exception_type', 'message']
+
 
 class SMSAdmin(admin.ModelAdmin):
     date_hierarchy = 'created'
     list_display = ('created', 'status', 'sender', 'to', 'content', 'operator', 'backend')
     search_fields = ('sender', 'to', 'content',)
     list_filter = ('backend', 'created', 'created')
+
+    fields = [
+        'sender',
+        'to',
+        'content',
+        'created',
+        'backend',
+        'gateway_ref',
+        'status',
+        'priority',
+        'cost',
+        'cost_currency_code',
+    ]
+    readonly_fields = fields
 
     inlines = [LogInlineAdmin]
 

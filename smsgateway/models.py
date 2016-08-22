@@ -57,6 +57,18 @@ class BaseSMS(models.Model):
     def __str__(self):
         return u'SMS: "%s" from "%s"' % (self.content, self.sender)
 
+    def is_delivered(self):
+        return self.status == STATUS.delivered
+
+    def is_sent(self):
+        return self.status == STATUS.sent
+
+    def is_rejected(self):
+        return self.status == STATUS.rejected
+
+    def is_failed(self):
+        return self.status == STATUS.failed
+
 
 class SMS(BaseSMS):
     class Meta:
@@ -100,7 +112,7 @@ class Log(models.Model):
     STATUS_CHOICES = [
         (STATUS.sent, _("sent")),
         (STATUS.failed, _("failed")),
-        (STATUS.delivered, _("failed")),
+        (STATUS.delivered, _("delivered")),
         (STATUS.rejected, _("rejected")),
     ]
 
