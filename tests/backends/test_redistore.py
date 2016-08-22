@@ -1,7 +1,7 @@
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import hashlib
-import redis 
+import redis
 
 from django.conf import settings
 from django.test import TestCase as DjangoTestCase
@@ -12,11 +12,10 @@ from smsgateway.models import SMS
 from smsgateway.sms import SMSRequest
 from smsgateway.utils import check_cell_phone_number, truncate_sms
 
-
 req_data = {
     'to': '+32000000001;+32000000002;+32000000003',
     'msg': 'text of the message',
-    'signature': 'cropped to 11 chars' 
+    'signature': 'cropped to 11 chars'
 }
 
 
@@ -32,7 +31,7 @@ class RedistoreBackendTestCase(DjangoTestCase):
 
     def test_initialize_without_sms_request(self):
         self.assert_(self.backend._initialize(None, self.conf) == False)
-        
+
     def test_initialize_with_sms_request(self):
         sms_request = SMSRequest(**req_data)
         self.assert_(self.backend._initialize(sms_request, self.conf) == True)
@@ -44,20 +43,20 @@ class RedistoreBackendTestCase(DjangoTestCase):
             self.assert_(sms.to[0] == check_cell_phone_number(to))
             self.assert_(sms.msg == truncate_sms(req_data['msg']))
             self.assertEqual(sms.signature,
-                             req_data['signature'][:len(sms.signature)])
+                req_data['signature'][:len(sms.signature)])
 
 
 class RedistoreSendSingleSMSTestCase(DjangoTestCase):
     def setUp(self):
         self.conf = settings.SMSGATEWAY_ACCOUNTS['redistore']
-        self.rdb = redis.Redis(host=self.conf['host'], 
-                               port=self.conf['port'],
-                               db=self.conf['dbn'],
-                               password=self.conf['pwd'])
-        self.assert_(SMS.objects.count() == 0)
-        send('+32000000001', 'testing message', 'the signature', 
-             using='redistore') 
-        self.assert_(SMS.objects.count() == 1)
+        self.rdb = redis.Redis(host=self.conf['host'],
+            port=self.conf['port'],
+            db=self.conf['dbn'],
+            password=self.conf['pwd'])
+        self.assertEqual(SMS.objects.count(), 0)
+        send('+32000000001', 'testing message', 'the signature',
+            using='redistore')
+        self.assertEqual(SMS.objects.count(), 1)
         self.sms = SMS.objects.get(pk=1)
 
     def tearDown(self):
@@ -68,7 +67,7 @@ class RedistoreSendSingleSMSTestCase(DjangoTestCase):
 
     def test_single_sms_object_values(self):
         self.assert_(self.sms.content == 'testing message')
-        self.assertEqual(self.sms.to, '32000000001')
+        self.assertEqual(self.sms.to, ['32000000001'])
         self.assert_(self.sms.sender == 'the signature'[:len(self.sms.sender)])
 
     def test_redis_keys(self):
@@ -97,14 +96,14 @@ class RedistoreSendSingleSMSTestCase(DjangoTestCase):
 class RedistoreSendMultipleSMSTestCase(DjangoTestCase):
     def setUp(self):
         self.conf = settings.SMSGATEWAY_ACCOUNTS['redistore']
-        self.rdb = redis.Redis(host=self.conf['host'], 
-                               port=self.conf['port'],
-                               db=self.conf['dbn'],
-                               password=self.conf['pwd'])
-        self.assert_(SMS.objects.count() == 0)
+        self.rdb = redis.Redis(host=self.conf['host'],
+            port=self.conf['port'],
+            db=self.conf['dbn'],
+            password=self.conf['pwd'])
+        self.assertEqual(SMS.objects.count(), 0)
         send(req_data['to'], req_data['msg'], req_data['signature'],
-             using='redistore') 
-        self.assert_(SMS.objects.count() == 3)
+            using='redistore')
+        self.assertEqual(SMS.objects.count(), 3)
         self.smses = SMS.objects.all()
 
     def tearDown(self):
@@ -114,9 +113,9 @@ class RedistoreSendMultipleSMSTestCase(DjangoTestCase):
         SMS.objects.all().delete()
 
     def test_multiple_sms_object_values(self):
-        for to, sms in zip (req_data['to'].split(';'), self.smses):
-            self.assert_(sms.to == check_cell_phone_number(to))
-            self.assert_(sms.content == truncate_sms(req_data['msg']))
+        for to, sms in zip(req_data['to'].split(';'), self.smses):
+            self.assertEqual(sms.to, [check_cell_phone_number(to)])
+            self.assertEqual(sms.content, truncate_sms(req_data['msg']))
             self.assertEqual(sms.sender,
-                             req_data['signature'][:len(sms.sender)])
-            self.assert_(sms.backend == 'redistore')
+                req_data['signature'][:len(sms.sender)])
+            self.assertEqual(sms.backend, 'redistore')

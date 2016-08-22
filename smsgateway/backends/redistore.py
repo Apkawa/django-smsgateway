@@ -81,7 +81,6 @@ class RedistoreBackend(SMSBackend):
                 'to': sms_data['destination_addr'],
                 'content': source_sms.msg,
                 'backend': self.get_slug(),
-                'direction': DIRECTION_OUTBOUND,
                 'gateway_ref': source_sms.reference
             }
             self.sent_smses.append(sent_sms)

@@ -1,6 +1,7 @@
 import codecs
 
 from django.http import HttpResponse
+from django.utils.encoding import smart_text
 
 from smsgateway.backends.base import SMSBackend
 
@@ -12,7 +13,7 @@ class FileBackend(SMSBackend):
         path = account_dict['path']
 
         f = codecs.open(path, 'ab', 'utf8')
-        f.write(u'%s,%s,%s\n' % (sms_request.to[0], sms_request.msg, sms_request.signature))
+        f.write(u'%s\n' % (u'\n'.join(map(smart_text, [sms_request.to, sms_request.content, sms_request.sender]))))
         f.close()
 
         return None

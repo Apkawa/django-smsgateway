@@ -10,8 +10,7 @@ from lockfile import FileLock, AlreadyLocked, LockTimeout
 from smsgateway import get_account, send, send_queued
 from smsgateway.backends.base import SMSBackend
 from smsgateway.enums import PRIORITY_DEFERRED
-from smsgateway.models import SMS, QueuedSMS
-
+from smsgateway.models import SMS, QueuedSMS, InboundSMS
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +76,7 @@ inq_ts_fmt = '%Y-%m-%d %H:%M:%S'
 
 @task
 def process_smses(smsk, sms_id, account_slug):
-    smsobj = SMS.objects.get(pk=sms_id)
+    smsobj = InboundSMS.objects.get(pk=sms_id)
     smsbackend = SMSBackend()
     racc = get_account(account_slug)
 
@@ -119,14 +118,14 @@ def recv_smses(account_slug='redistore', async=False):
             logger.error("SMS key %r is empty", smsk)
             continue
         # since microsecond are not always present - we remove them
-        smsd['sent'] = datetime.datetime.strptime(smsd['sent'].split('.')[0],
+        smsd['created'] = datetime.datetime.strptime(smsd['created'].split('.')[0],
                                                   inq_ts_fmt)
         smsd['backend'] = account_slug
         # Compatibility with older code that expects numbers to starts with '+'
         msisdn_prefix = getattr(settings, 'SMSGATEWAY_MSISDN_PREFIX', '')
         if msisdn_prefix and not smsd['sender'].startswith(msisdn_prefix):
             smsd['sender'] = msisdn_prefix + smsd['sender']
-        smsobj = SMS(**smsd)
+        smsobj = InboundSMS(**smsd)
         smsobj.save()
         process_func(smsk, smsobj.pk, account_slug)
 

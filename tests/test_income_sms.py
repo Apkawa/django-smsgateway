@@ -7,17 +7,18 @@ from django.core import urlresolvers
 from django.test import TestCase as DjangoTestCase
 
 from smsgateway import enums
-from smsgateway.models import SMS
+from smsgateway.models import SMS, InboundSMS
 from smsgateway.tasks import recv_smses
 from smsgateway.backends.base import SMSBackend
 
 from mock import call, patch
 
-
 ACCOUNTS = getattr(settings, "SMSGATEWAY_ACCOUNTS", {})
+
 
 def _(key):
     return '%s%s' % (ACCOUNTS['redistore']['key_prefix'], key)
+
 
 def setup_redis_inq(rdb, count, **kwargs):
     source_addr = kwargs.get('source_addr', '+324832077%02d')
@@ -28,9 +29,9 @@ def setup_redis_inq(rdb, count, **kwargs):
         sent_ts = datetime.datetime.now()
         sender = source_addr % i
         message_md5 = hashlib.md5('%d:%s:%s' % (
-                sent_ts.toordinal(), sender, destination_addr))
+            sent_ts.toordinal(), sender, destination_addr))
         sms_data = {
-            'sent': "%s" % sent_ts,
+            'created': "%s" % sent_ts,
             'content': short_message % i,
             'sender': sender,
             'to': destination_addr,
@@ -46,10 +47,10 @@ def setup_redis_inq(rdb, count, **kwargs):
 class RecvSMSesTestCase(DjangoTestCase):
     def setUp(self):
         self.conf = ACCOUNTS['redistore']
-        self.rdb = redis.Redis(host=self.conf['host'], 
-                               port=self.conf['port'],
-                               db=self.conf['dbn'],
-                               password=self.conf['pwd'])
+        self.rdb = redis.Redis(host=self.conf['host'],
+            port=self.conf['port'],
+            db=self.conf['dbn'],
+            password=self.conf['pwd'])
         self.assert_(SMS.objects.count() == 0)
 
     def tearDown(self):
@@ -61,7 +62,7 @@ class RecvSMSesTestCase(DjangoTestCase):
     def test_recv_smses(self):
         setup_redis_inq(self.rdb, 3)
         recv_smses()
-        self.assert_(SMS.objects.count() == 3)
+        self.assert_(InboundSMS.objects.count() == 3)
 
     def test_recv_smses_and_responses(self):
         def side_effect(_, sms):
@@ -69,18 +70,19 @@ class RecvSMSesTestCase(DjangoTestCase):
             return 'Successful!'
 
         setup_redis_inq(self.rdb, 3, short_message='SIM TOPUP %d')
-        self.assert_(self.rdb.llen(_('inq')) == 3)
+        self.assertEqual(self.rdb.llen(_('inq')), 3)
 
-        with patch.object(SMSBackend, 'process_incoming') as mockf: 
+        with patch.object(SMSBackend, 'process_incoming') as mockf:
             mockf.side_effect = side_effect
             recv_smses()
 
-        mockf.assert_has_calls([call(None, SMS.objects.get(pk=1)),
-                                call(None, SMS.objects.get(pk=3)),
-                                call(None, SMS.objects.get(pk=5))])
+        mockf.assert_has_calls([call(None, InboundSMS.objects.get(pk=1)),
+                                call(None, InboundSMS.objects.get(pk=2)),
+                                call(None, InboundSMS.objects.get(pk=3))])
 
-        self.assert_(self.rdb.llen(_('outq')) == 3)
-        self.assert_(self.rdb.llen(_('inq')) == 0)
+        self.assertEqual(self.rdb.llen(_('outq')), 3)
+        self.assertEqual(self.rdb.llen(_('inq')), 0)
 
         # 3 incoming SMSes + 3 outgoing TOPUP confirmation SMSes
-        self.assert_(SMS.objects.count() == 6)
+        self.assertEqual(InboundSMS.objects.count(), 3)
+        self.assertEqual(SMS.objects.count(), 3)

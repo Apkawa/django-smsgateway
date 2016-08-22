@@ -8,7 +8,7 @@ from django.core.urlresolvers import get_callable
 
 from smsgateway.compat import urllib2
 from smsgateway.enums import DIRECTION_OUTBOUND
-from smsgateway.models import SMS
+from smsgateway.models import SMS, STATUS
 from smsgateway.sms import SMSRequest
 
 logger = logging.getLogger(__name__)
@@ -27,18 +27,18 @@ class SMSBackend(object):
         """
         capacity = self.get_url_capacity()
         sender = u'[%s]' % self.get_slug() if not sms_request.signature else sms_request.signature
-        reference = datetime.datetime.now().strftime('%Y%m%d%H%M%S') + u''.join(sms_request.to[:1])
 
         # Split SMSes into batches depending on the capacity
         requests = []
         while len(sms_request.to) > 0:
-            requests.append(SMSRequest(
-                sms_request.to[:capacity],
-                sms_request.msg,
-                sms_request.signature,
-                reliable=sms_request.reliable,
-                reference=reference
-            ))
+            sms = SMS(
+                sender=sender,
+                content=sms_request.msg,
+                to=sms_request.to[:capacity],
+                backend=self.get_slug(),
+            )
+            sms.gateway_ref = self.build_gateway_ref(sms)
+            requests.append(sms)
             del sms_request.to[:capacity]
 
         # Send each batch
@@ -47,39 +47,51 @@ class SMSBackend(object):
             res_data = {'request': request, 'objects': None}
 
             url = self.get_send_url(request, account_dict)
+            if not url:
+                continue
+
             logger.debug('Sending SMS using: %s' % url)
 
             # Make request to provider
-            result = u''
-            if url is not None:
+            response = status = None
+            message = exception_type = ''
+            try:
                 try:
                     sock = urllib2.urlopen(url)
-                    result = sock.read()
+                    response = sock.read()
+                    sms.status = status = STATUS.sent
+                    message = response
+
                     sock.close()
-                except:
+                except Exception as e:
                     logger.exception("Send fail")
-                    return False
-            logger.debug('Result: %s' % result)
-            res_data['result'] = result
 
-            # Validate result, create log entry if successful
-            res_data['success'] = False
-            if self.validate_send_result(result):
-                res_data['objects'] = []
-                for dest in request.to:
-                    sms = SMS.objects.create(
-                        sender=sender,
-                        content=sms_request.msg,
-                        to=dest,
-                        backend=self.get_slug(),
-                        direction=DIRECTION_OUTBOUND,
-                        gateway_ref=reference
-                    )
-                    res_data['objects'].append(sms)
+                    sms.status = status = STATUS.failed
+                    message = str(e)
+                    exception_type = type(e).__name__
 
-            responses.append(res_data)
+                logger.debug('Result: %s' % response)
+                parsed_response = self.parse_result(response)
+
+                if not self.validate_send_result(parsed_response):
+                    status = STATUS.failed
+                self.process_response(sms, parsed_response)
+
+                res_data['result'] = parsed_response
+                res_data['objects'] = sms
+                responses.append(res_data)
+            finally:
+                sms.save()
+                sms.logs.create(
+                    status=status,
+                    message=message,
+                    exception_type=exception_type
+                )
 
         return responses
+
+    def build_gateway_ref(self, sms):
+        return datetime.datetime.now().strftime('%Y%m%d%H%M%S') + u''.join(sms.to)
 
     def get_send_url(self, sms_request, account_dict):
         """
@@ -92,6 +104,20 @@ class SMSBackend(object):
         Returns whether sending an sms was successful.
         """
         raise NotImplementedError
+
+    def get_cost(self, sms, parsed_result):
+        return None
+
+    def get_cost_currency(self, sms, parsed_result):
+        return None
+
+    def process_response(self, sms, parsed_result):
+        sms.cost = self.get_cost(sms, parsed_result)
+        sms.cost_currency_code = self.get_cost_currency(sms, parsed_result)
+        return None
+
+    def parse_result(self, result):
+        return result
 
     def handle_incoming(self, request, reply_using=None):
         """
