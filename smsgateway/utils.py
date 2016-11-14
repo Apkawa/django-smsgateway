@@ -27,6 +27,7 @@ def truncate_sms(text, max_length=160):
     if len(text) <= max_length:
         return text
     else:
+        # TODO strip by segments, UCS-2 or ascii
         logger.error("Trying to send an SMS that is too long: %s", text)
         return text[:max_length-3] + '...'
 

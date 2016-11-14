@@ -1,4 +1,6 @@
 from smsgateway.utils import check_cell_phone_number, truncate_sms
+from .options import SMSGATEWAY_SMS_MAX_LENGTH
+
 
 class SMSRequest(object):
     def __init__(self, to, msg, signature, reliable=False, reference=None):
@@ -11,8 +13,7 @@ class SMSRequest(object):
         >>> sms_request = SMSRequest(to='+32472123456;+3298723456', msg=u'Hello, world!', signature='9898')
         """
         self.to = [check_cell_phone_number(n) for n in (to.split(';') if isinstance(to, basestring) else to)]
-        self.msg = truncate_sms(msg)
+        self.msg = truncate_sms(msg, max_length=SMSGATEWAY_SMS_MAX_LENGTH)
         self.signature = signature[:16] if signature[1:].isdigit() else signature[:11]
         self.reliable = reliable
         self.reference = reference
-
