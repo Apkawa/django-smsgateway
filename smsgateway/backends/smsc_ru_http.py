@@ -43,7 +43,8 @@ class SMSCHTTPBackend(SMSBackend):
             "cost": 2,
             "id": sms.gateway_ref,
         })
-        return 'https://smsc.ru/sys/send.php?%s' % querystring
+        base_url = account_dict.get("base_url", "https://smsc.ru")
+        return '%s/sys/send.php?%s' % (base_url, querystring)
 
     def parse_result(self, result):
         return json.loads(result)
