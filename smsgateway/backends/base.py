@@ -7,9 +7,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import get_callable
 
 from smsgateway.compat import urllib2
-from smsgateway.enums import DIRECTION_OUTBOUND
 from smsgateway.models import SMS, STATUS
-from smsgateway.sms import SMSRequest
+from smsgateway.utils import get_random_string
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,9 @@ class SMSBackend(object):
         return responses
 
     def build_gateway_ref(self, sms):
-        return datetime.datetime.now().strftime('%Y%m%d%H%M%S') + u''.join(sms.to)
+        sms_to = u''.join(sms.to)
+        now_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        return ('%s%s%s' % (sms_to, now_str, get_random_string(length=4)))[:32]
 
     def get_send_url(self, sms_request, account_dict):
         """

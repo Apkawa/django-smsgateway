@@ -29,7 +29,7 @@ def truncate_sms(text, max_length=160):
     else:
         # TODO strip by segments, UCS-2 or ascii
         logger.error("Trying to send an SMS that is too long: %s", text)
-        return text[:max_length-3] + '...'
+        return text[:max_length - 3] + '...'
 
 
 def _match_keywords(content, hooks):
@@ -77,3 +77,8 @@ def parse_sms(content):
     from smsgateway.backends.base import all_hooks
     content = _match_keywords(content, all_hooks)
     return content.split(' ')
+
+
+def get_random_string(*args, **kwargs):
+    from django.utils.crypto import get_random_string as _get_random_string
+    return _get_random_string(*args, **kwargs)

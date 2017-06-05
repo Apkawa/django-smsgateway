@@ -79,6 +79,8 @@ class SMSCHTTPBackend(SMSBackend):
             sms = SMS.objects.get(gateway_ref=data['id'])
         except SMS.DoesNotExist:
             raise Http404("Not found sms")
+        except SMS.MultipleObjectsReturned as e:
+            raise Http404("Multiple sms: %s" % e)
 
         message = json.dumps(data)
         if data.get('err') is None or text_type(data['err']) == '0':

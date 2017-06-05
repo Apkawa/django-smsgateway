@@ -39,6 +39,7 @@ class BaseSMS(models.Model):
 
     backend = models.CharField(max_length=32, db_index=True, default='unknown', verbose_name=_(u'backend'))
 
+    # TODO up max_length to 64
     gateway_ref = models.CharField(max_length=32, blank=True, verbose_name=_(u'gateway reference'),
         help_text=_(u'A reference id for the gateway'))
 
