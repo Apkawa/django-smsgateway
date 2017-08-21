@@ -3,6 +3,8 @@ import logging
 import redis
 
 from django.conf import settings
+from django.db.models import Q
+
 from celery import shared_task as task
 
 from lockfile import FileLock, AlreadyLocked, LockTimeout
@@ -11,6 +13,7 @@ from smsgateway import get_account, send, send_queued
 from smsgateway.backends.base import SMSBackend
 from smsgateway.enums import PRIORITY_DEFERRED
 from smsgateway.models import SMS, QueuedSMS, InboundSMS
+from smsgateway.signals import send_queued_sms
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,11 @@ def send_smses(send_deferred=False, backend=None, limit=None):
         else:
             to_send = QueuedSMS.objects.exclude(priority=PRIORITY_DEFERRED)
 
+        to_send = to_send.filter(
+            Q(scheduled__isnull=True)
+            | Q(scheduled__lte=datetime.datetime.now())
+        )
+
         if isinstance(limit, int):
             to_send = to_send[:limit]
 
@@ -52,11 +60,13 @@ def send_smses(send_deferred=False, backend=None, limit=None):
                 sms_using = backend
             else:
                 sms_using = None if sms.using == '__none__' else sms.using
-            if send(sms.to, sms.content, sms.signature, sms_using, sms.reliable):
+            responses = send(sms.to, sms.content, sms.signature, sms_using, sms.reliable)
+            if responses:
                 # Successfully sent, remove from queue
                 logger.info("SMS to %s sent." % sms.to)
                 sms.delete()
                 successes += 1
+                send_queued_sms.send_robust(sender=SMS, responses=responses, queued_sms=sms)
             else:
                 # Failed to send, defer SMS
                 logger.info("SMS to %s failed." % sms.to)
@@ -99,9 +109,9 @@ def recv_smses(account_slug='redistore', async=False):
     count = 0
     racc = get_account(account_slug)
     rpool = redis.ConnectionPool(host=racc['host'],
-                                 port=racc['port'],
-                                 db=racc['dbn'],
-                                 password=racc['pwd'])
+        port=racc['port'],
+        db=racc['dbn'],
+        password=racc['pwd'])
     rconn = redis.Redis(connection_pool=rpool)
     logger.info("Processing incoming SMSes for %s", account_slug)
 
@@ -119,7 +129,7 @@ def recv_smses(account_slug='redistore', async=False):
             continue
         # since microsecond are not always present - we remove them
         smsd['created'] = datetime.datetime.strptime(smsd['created'].split('.')[0],
-                                                  inq_ts_fmt)
+            inq_ts_fmt)
         smsd['backend'] = account_slug
         # Compatibility with older code that expects numbers to starts with '+'
         msisdn_prefix = getattr(settings, 'SMSGATEWAY_MSISDN_PREFIX', '')
@@ -130,4 +140,4 @@ def recv_smses(account_slug='redistore', async=False):
         process_func(smsk, smsobj.pk, account_slug)
 
     logger.info("End sharing out incoming SMSes for %s (%d saved).",
-                account_slug, count)
+        account_slug, count)

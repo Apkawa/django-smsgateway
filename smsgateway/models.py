@@ -5,6 +5,7 @@ from collections import namedtuple
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from jsonfield import JSONField
 from six import python_2_unicode_compatible, text_type
 
 from smsgateway.enums import (OPERATOR_CHOICES, OPERATOR_UNKNOWN,
@@ -88,6 +89,12 @@ class QueuedSMS(models.Model):
     signature = models.CharField(max_length=32, verbose_name=_(u'signature'))
     content = models.TextField(verbose_name=_(u'content'), help_text=_(u'SMS content'))
     created = models.DateTimeField(default=datetime.datetime.now)
+
+    scheduled = models.DateTimeField(_('The scheduled sending time'),
+        blank=True, null=True, db_index=True)
+    tag = models.CharField(max_length=64, blank=True, null=True)
+    meta = JSONField(blank=True, null=True)
+
     using = models.CharField(blank=True, max_length=100, verbose_name=_(u'gateway'),
         help_text=_(u'Via which provider the SMS will be sent.'))
     priority = models.CharField(max_length=1, choices=PRIORITIES, default=PRIORITY_MEDIUM)

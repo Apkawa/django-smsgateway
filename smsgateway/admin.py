@@ -15,7 +15,7 @@ class SMSAdmin(admin.ModelAdmin):
     date_hierarchy = 'created'
     list_display = ('created', 'status', 'sender', 'to', 'content', 'operator', 'backend')
     search_fields = ('sender', 'to', 'content',)
-    list_filter = ('backend', 'created', 'created')
+    list_filter = ('backend', 'created', 'status')
 
     fields = [
         'sender',

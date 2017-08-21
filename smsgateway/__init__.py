@@ -39,7 +39,8 @@ def send(to, msg, signature=None, using=None, reliable=False):
     return backend.send(sms_request, account_dict)
 
 
-def send_queued(to, msg, signature=None, using=None, reliable=False, priority=None):
+def send_queued(to, msg, signature=None, using=None, reliable=False, priority=None,
+                scheduled=None, meta=None, tag=None):
     """
     Place SMS message in queue to be sent.
     """
@@ -58,8 +59,12 @@ def send_queued(to, msg, signature=None, using=None, reliable=False, priority=No
         content=msg,
         signature=signature,
         using=using if using is not None else '__none__',
-        reliable=reliable
+        reliable=reliable,
+        scheduled=scheduled,
+        tag=tag,
+        meta=meta,
     )
     if priority is not None:
         queued_sms.priority = priority
-    return queued_sms.save()
+    queued_sms.save()
+    return queued_sms
