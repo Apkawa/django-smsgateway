@@ -47,7 +47,7 @@ class SMPPTestMixin(object):
         assert not os.path.exists(os.path.join(SMPPSIM_DIR, 'service.pid')), "SMPPSim not stoping"
 
 
-class SMPPBackendTestCase(TestCase):
+class SMPPBackendTestCase(SMPPTestMixin, TestCase):
     def setUp(self):
         super(SMPPBackendTestCase, self).setUp()
         self.backend = SMPPBackend()
