@@ -11,5 +11,11 @@ for entry in backends:
     instance = backend_class()
     REGISTRY[instance.get_slug()] = instance
 
+
 def get_backend(slug):
+    """
+    
+    :param slug: 
+    :return: instance of <smsgateway.backends.base.SMSBackend>
+    """
     return REGISTRY.get(slug, None)

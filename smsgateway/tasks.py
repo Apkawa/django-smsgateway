@@ -141,3 +141,11 @@ def recv_smses(account_slug='redistore', async=False):
 
     logger.info("End sharing out incoming SMSes for %s (%d saved).",
         account_slug, count)
+
+
+def cron_smsces(using=None, task=None, **kwargs):
+    from smsgateway.backends import get_backend
+    account = get_account(using)
+    backend = get_backend(account['backend'])
+
+    backend.handle_cron(account, task=task, **kwargs)

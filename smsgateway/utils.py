@@ -1,4 +1,6 @@
 import logging
+
+import itertools
 import re
 
 from django.conf import settings
@@ -82,3 +84,12 @@ def parse_sms(content):
 def get_random_string(*args, **kwargs):
     from django.utils.crypto import get_random_string as _get_random_string
     return _get_random_string(*args, **kwargs)
+
+
+def grouper(iterable, chunk_size):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, chunk_size))
+        if not chunk:
+            return
+        yield chunk

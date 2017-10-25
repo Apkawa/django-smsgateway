@@ -132,6 +132,14 @@ class SMSBackend(object):
         """
         raise NotImplementedError
 
+    def handle_cron(self, account_dict, **kwargs):
+        """
+        For crontab tasks, update sms statuses, and more
+        :param kwargs: 
+        :return: 
+        """
+        raise NotImplementedError
+
     def get_url_capacity(self):
         """
         Returns the number of text messages one call to the url can handle at once.

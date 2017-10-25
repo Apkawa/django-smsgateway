@@ -2,6 +2,11 @@ __version__ = '2.0.4'
 
 
 def get_account(using=None):
+    """
+    
+    :param using: 
+    :return: 
+    """
     from django.conf import settings
     accounts = settings.SMSGATEWAY_ACCOUNTS
     if using is not None:
